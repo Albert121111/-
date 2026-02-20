@@ -8,11 +8,10 @@
     "start": "node src/server.js",
     "seed": "node scripts/seedLocations.js",
     "migrate": "node scripts/migrate.js",
-    "test": "node --test",
-    "build": "echo backend build complete"
+    "build": "echo backend build complete",
+    "test": "node --test"
   },
   "dependencies": {
-    "better-sqlite3": "^11.7.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -21,5 +20,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -7,12 +7,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
+function npmCommand() {
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+}
+
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: rootDir,
       stdio: 'inherit',
-      shell: process.platform === 'win32',
+      shell: false,
       ...options
     });
 
@@ -32,7 +36,7 @@ async function ensureDependencies() {
 
   if (!hasRoot || !hasBackend || !hasFrontend) {
     console.log('[up] Installing dependencies...');
-    await runCommand('npm', ['install']);
+    await runCommand(npmCommand(), ['install']);
   }
 }
 
@@ -47,22 +51,22 @@ function ensureEnvFile() {
 
 async function runMigrations() {
   console.log('[up] Running DB migrations...');
-  await runCommand('npm', ['run', 'migrate', '--workspace', 'backend']);
+  await runCommand(npmCommand(), ['run', 'migrate', '--workspace', 'backend']);
 }
 
 async function startServers() {
   console.log('[up] Starting backend and frontend...');
 
-  const backend = spawn('npm', ['run', 'dev', '--workspace', 'backend'], {
+  const backend = spawn(npmCommand(), ['run', 'dev', '--workspace', 'backend'], {
     cwd: rootDir,
     stdio: 'inherit',
-    shell: process.platform === 'win32'
+    shell: false
   });
 
-  const frontend = spawn('npm', ['run', 'dev', '--workspace', 'frontend'], {
+  const frontend = spawn(npmCommand(), ['run', 'dev', '--workspace', 'frontend'], {
     cwd: rootDir,
     stdio: 'inherit',
-    shell: process.platform === 'win32'
+    shell: false
   });
 
   const cleanup = () => {

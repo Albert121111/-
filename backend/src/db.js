@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -6,8 +6,8 @@ const dataDir = path.resolve(process.cwd(), '..', 'data');
 fs.mkdirSync(dataDir, { recursive: true });
 
 const dbPath = process.env.DB_PATH || path.join(dataDir, 'revda.db');
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+const db = new DatabaseSync(dbPath);
+db.exec('PRAGMA journal_mode = WAL;');
 
 export const initSchema = () => {
   db.exec(`

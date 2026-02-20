@@ -48,8 +48,19 @@ function insertLocation(loc) {
   const key = gridKey(loc.lat, loc.lon, 25);
   db.prepare(
     `INSERT OR IGNORE INTO locations (lat, lon, provider, pano_id, captured_at, heading, pitch, tags, quality_score, grid_key)
-    VALUES (@lat, @lon, @provider, @panoId, @capturedAt, @heading, @pitch, @tags, @qualityScore, @gridKey)`
-  ).run({ ...loc, gridKey: key });
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    loc.lat,
+    loc.lon,
+    loc.provider,
+    loc.panoId,
+    loc.capturedAt,
+    loc.heading,
+    loc.pitch,
+    loc.tags,
+    loc.qualityScore,
+    key
+  );
 }
 
 function setMetadata(key, value) {

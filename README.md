@@ -5,7 +5,7 @@
 ## Стек
 - **Frontend:** React + Vite + Leaflet
 - **Backend:** Node.js + Express
-- **БД:** SQLite (better-sqlite3)
+- **БД:** SQLite (`node:sqlite`, встроенный в Node.js)
 - **Панорамы:** Mapillary Graph API + embed viewer
 - **Геоданные:** Overpass API (OSM relation boundary)
 
@@ -59,6 +59,19 @@ npm run up
 npm run up
 npm run seed --workspace backend
 ```
+
+
+## Windows troubleshooting (better-sqlite3 / node-gyp error)
+Если вы видели ошибку вида `better-sqlite3 ... node-gyp ... Could not find any Visual Studio installation`,
+обновите проект до текущей версии и запустите снова:
+
+```bash
+git pull
+npm run up
+```
+
+Теперь backend использует встроенный в Node модуль `node:sqlite` (без нативной сборки через Visual Studio Build Tools).
+Требуется Node.js **22+**.
 
 ## Команды
 - `npm run up` — запуск проекта одной командой (install + env + migrate + frontend/backend), кроссплатформенно
