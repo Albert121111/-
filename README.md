@@ -62,6 +62,16 @@ npm run seed --workspace backend
 
 
 ## Windows troubleshooting (better-sqlite3 / node-gyp error)
+
+Если ошибка была вида `spawn EINVAL` при `npm run up`, это обычно Windows-особенность запуска `npm.cmd`.
+В актуальной версии `up.mjs` это исправлено (запуск через `node + npm-cli.js`).
+Обновитесь и запустите снова:
+
+```bash
+git pull
+npm run up
+```
+
 Если вы видели ошибку вида `better-sqlite3 ... node-gyp ... Could not find any Visual Studio installation`,
 обновите проект до текущей версии и запустите снова:
 
