@@ -4,13 +4,10 @@
   "version": "1.0.0",
   "workspaces": ["backend", "frontend"],
   "scripts": {
-    "install:all": "npm install --workspaces",
-    "dev": "concurrently \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\"",
+    "dev": "bash scripts/up.sh",
+    "up": "bash scripts/up.sh",
     "build": "npm run build --workspace backend && npm run build --workspace frontend",
     "start": "npm run start --workspace backend",
     "test": "npm run test --workspace backend"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
   }
 }

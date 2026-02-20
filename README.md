@@ -36,26 +36,30 @@ cp .env.example .env
 - `MAPILLARY_TOKEN`
 - `VITE_MAPILLARY_TOKEN`
 
-## Запуск (после установки зависимостей — одной командой)
+## Запуск одной командой
 ```bash
-npm run dev
+npm run up
 ```
+
+Что делает команда:
+1. Ставит зависимости (если их нет).
+2. Создает `.env` из `.env.example` (если отсутствует).
+3. Выполняет миграцию SQLite.
+4. Поднимает backend + frontend одновременно.
 
 Приложение поднимет:
 - backend: `http://localhost:3000`
 - frontend: `http://localhost:5173`
 
-## Полный setup
+## Полный setup (с сидиногом 10 000 точек)
 ```bash
-npm install
-cp .env.example .env
-npm run migrate --workspace backend
+npm run up
 npm run seed --workspace backend
-npm run dev
 ```
 
 ## Команды
-- `npm run dev` — фронт+бэк одновременно
+- `npm run up` — запуск проекта одной командой (install + env + migrate + frontend/backend)
+- `npm run dev` — алиас к `npm run up`
 - `npm run build` — build frontend + backend
 - `npm run start` — запуск backend
 - `npm run migrate --workspace backend` — инициализация схемы SQLite
