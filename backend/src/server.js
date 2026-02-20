@@ -12,7 +12,37 @@ app.use(cors());
 app.use(express.json());
 
 initSchema();
-const boundary = await getRevdaBoundary();
+
+const boundaryState = {
+  data: null,
+  error: null,
+  loading: true
+};
+
+async function loadBoundary() {
+  boundaryState.loading = true;
+  try {
+    boundaryState.data = await getRevdaBoundary();
+    boundaryState.error = null;
+  } catch (error) {
+    boundaryState.error = error;
+    boundaryState.data = null;
+    console.error('[boundary] Failed to load Revda boundary:', error.message);
+  } finally {
+    boundaryState.loading = false;
+  }
+}
+
+await loadBoundary();
+
+function requireBoundary(res) {
+  if (boundaryState.data?.polygon?.length) return boundaryState.data;
+  res.status(503).json({
+    error: 'Revda boundary is temporarily unavailable (Overpass timeout). Try again shortly.',
+    details: boundaryState.error?.message || null
+  });
+  return null;
+}
 
 function computeScore(distanceM, maxDistance = 5000) {
   const normalized = Math.max(0, 1 - distanceM / maxDistance);
@@ -24,10 +54,20 @@ app.get('/api/config', (_, res) => {
     city: 'Ревда',
     roundsDefault: 5,
     timerDefault: 90,
-    boundary: boundary.polygon,
-    bounds: boundary.bounds,
+    boundaryReady: Boolean(boundaryState.data?.polygon?.length),
+    boundaryError: boundaryState.error?.message || null,
+    boundary: boundaryState.data?.polygon || null,
+    bounds: boundaryState.data?.bounds || null,
     mapillaryTokenPresent: Boolean(process.env.MAPILLARY_TOKEN)
   });
+});
+
+app.post('/api/admin/reload-boundary', async (_, res) => {
+  await loadBoundary();
+  if (boundaryState.data?.polygon?.length) {
+    return res.json({ ok: true, boundaryReady: true, source: boundaryState.data.source || 'cache' });
+  }
+  return res.status(503).json({ ok: false, boundaryReady: false, error: boundaryState.error?.message || null });
 });
 
 app.post('/api/games', (req, res) => {
@@ -39,6 +79,9 @@ app.post('/api/games', (req, res) => {
 });
 
 app.get('/api/games/:gameId/next-round', (req, res) => {
+  const boundary = requireBoundary(res);
+  if (!boundary) return;
+
   const gameId = Number(req.params.gameId);
   const game = db.prepare('SELECT * FROM games WHERE id=?').get(gameId);
   if (!game) return res.status(404).json({ error: 'Game not found' });
@@ -67,6 +110,9 @@ app.get('/api/games/:gameId/next-round', (req, res) => {
 });
 
 app.post('/api/games/:gameId/rounds', (req, res) => {
+  const boundary = requireBoundary(res);
+  if (!boundary) return;
+
   const gameId = Number(req.params.gameId);
   const { locationId, guessLat, guessLon } = req.body;
   if (!pointInPolygon([guessLon, guessLat], boundary.polygon)) {
@@ -95,6 +141,9 @@ app.post('/api/games/:gameId/rounds', (req, res) => {
 });
 
 app.get('/api/games/:gameId/results', (req, res) => {
+  const boundary = requireBoundary(res);
+  if (!boundary) return;
+
   const gameId = Number(req.params.gameId);
   const rounds = db
     .prepare(

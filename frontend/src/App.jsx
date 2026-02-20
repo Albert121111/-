@@ -92,6 +92,8 @@ export default function App() {
 
   if (!config) return <div className="layout">Loading config...</div>;
 
+  const boundaryPoints = config.boundary ? config.boundary.map(([lon, lat]) => [lat, lon]) : [];
+
   if (!gameId) {
     return (
       <div className="layout">
@@ -99,7 +101,7 @@ export default function App() {
         <p>Только панорамы внутри административных границ Ревды.</p>
         <label>Раундов: <input type="number" value={settings.rounds} onChange={(e) => setSettings((s) => ({ ...s, rounds: Number(e.target.value) }))} /></label>
         <label>Таймер (сек): <input type="number" value={settings.timerSeconds} onChange={(e) => setSettings((s) => ({ ...s, timerSeconds: Number(e.target.value) }))} /></label>
-        <button onClick={startGame}>Начать игру</button>
+        <button onClick={startGame} disabled={!config.boundaryReady}>Начать игру</button>
       </div>
     );
   }
@@ -119,9 +121,16 @@ export default function App() {
         />
       )}
 
+      {!config.boundaryReady && (
+        <div className="feedback">
+          <p>Граница Ревды временно недоступна (Overpass). Сервер запущен, попробуйте позже или перезапустите.</p>
+          {config.boundaryError ? <p>Причина: {config.boundaryError}</p> : null}
+        </div>
+      )}
+
       <MapContainer center={center} zoom={12} className="map">
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <Polygon positions={config.boundary.map(([lon, lat]) => [lat, lon])} pathOptions={{ color: 'red' }} />
+        {boundaryPoints.length > 0 ? <Polygon positions={boundaryPoints} pathOptions={{ color: 'red' }} /> : null}
         <GuessMarker guess={guess} setGuess={setGuess} />
       </MapContainer>
 
