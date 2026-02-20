@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import fetch from 'node-fetch';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const overpassEndpoints = [
   process.env.OVERPASS_URL,
@@ -9,7 +13,7 @@ const overpassEndpoints = [
   'https://overpass.private.coffee/api/interpreter'
 ].filter(Boolean);
 
-const cachePath = path.resolve(process.cwd(), '..', 'data', 'revda-boundary.geojson');
+const cachePath = path.resolve(__dirname, '..', '..', 'data', 'revda-boundary.geojson');
 
 function parseBoundary(data) {
   const relation = data.elements.find((e) => e.type === 'relation');
@@ -28,6 +32,50 @@ function parseBoundary(data) {
   if (!rings.length) throw new Error('Could not parse outer rings for Revda boundary.');
   rings.sort((a, b) => b.length - a.length);
   return rings[0];
+}
+
+function normalizeClosedRing(ring) {
+  if (!ring.length) return ring;
+  const [firstLon, firstLat] = ring[0];
+  const [lastLon, lastLat] = ring[ring.length - 1];
+  if (firstLon !== lastLon || firstLat !== lastLat) {
+    return [...ring, [firstLon, firstLat]];
+  }
+  return ring;
+}
+
+function parseNominatimBoundary(items) {
+  if (!Array.isArray(items) || !items.length) {
+    throw new Error('Nominatim returned empty result.');
+  }
+
+  const withPolygon = items.find((item) => item?.geojson?.type === 'Polygon' || item?.geojson?.type === 'MultiPolygon');
+  if (!withPolygon) {
+    throw new Error('Nominatim result has no polygon geometry.');
+  }
+
+  const geometry = withPolygon.geojson;
+  let ring = null;
+  if (geometry.type === 'Polygon') {
+    ring = geometry.coordinates?.[0];
+  }
+  if (geometry.type === 'MultiPolygon') {
+    ring = geometry.coordinates?.[0]?.[0];
+  }
+
+  if (!Array.isArray(ring) || ring.length < 4) {
+    throw new Error('Invalid polygon ring from Nominatim.');
+  }
+
+  return normalizeClosedRing(ring.map(([lon, lat]) => [Number(lon), Number(lat)]));
+}
+
+function calcBounds(ring) {
+  const minLon = Math.min(...ring.map(([lon]) => lon));
+  const minLat = Math.min(...ring.map(([, lat]) => lat));
+  const maxLon = Math.max(...ring.map(([lon]) => lon));
+  const maxLat = Math.max(...ring.map(([, lat]) => lat));
+  return [minLon, minLat, maxLon, maxLat];
 }
 
 function readBoundaryCache() {
@@ -63,6 +111,39 @@ async function fetchOverpass(endpoint, query, timeoutMs = 45000) {
   }
 }
 
+async function fetchNominatimBoundary(timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const url =
+      'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&polygon_geojson=1' +
+      '&city=%D0%A0%D0%B5%D0%B2%D0%B4%D0%B0&state=%D0%A1%D0%B2%D0%B5%D1%80%D0%B4%D0%BB%D0%BE%D0%B2%D1%81%D0%BA%D0%B0%D1%8F%20%D0%BE%D0%B1%D0%BB%D0%B0%D1%81%D1%82%D1%8C&country=%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F';
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'revda-geoguessr/1.0 (boundary-fetch)'
+      },
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`Nominatim error: ${response.status} ${response.statusText}`);
+    }
+
+    const json = await response.json();
+    const ring = parseNominatimBoundary(json);
+    return {
+      polygon: ring,
+      bounds: calcBounds(ring),
+      source: 'nominatim.openstreetmap.org',
+      fetchedAt: new Date().toISOString()
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function getRevdaBoundary() {
   const cached = readBoundaryCache();
   if (cached?.polygon?.length) return cached;
@@ -74,15 +155,11 @@ export async function getRevdaBoundary() {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
         const json = await fetchOverpass(endpoint, query);
-        const ring = parseBoundary(json);
-        const minLon = Math.min(...ring.map(([lon]) => lon));
-        const minLat = Math.min(...ring.map(([, lat]) => lat));
-        const maxLon = Math.max(...ring.map(([lon]) => lon));
-        const maxLat = Math.max(...ring.map(([, lat]) => lat));
+        const ring = normalizeClosedRing(parseBoundary(json));
 
         const payload = {
           polygon: ring,
-          bounds: [minLon, minLat, maxLon, maxLat],
+          bounds: calcBounds(ring),
           source: endpoint,
           fetchedAt: new Date().toISOString()
         };
@@ -96,9 +173,17 @@ export async function getRevdaBoundary() {
     }
   }
 
+  try {
+    const fallbackPayload = await fetchNominatimBoundary();
+    writeBoundaryCache(fallbackPayload);
+    return fallbackPayload;
+  } catch (error) {
+    lastError = error;
+  }
+
   const stale = readBoundaryCache();
   if (stale?.polygon?.length) {
-    return { ...stale, stale: true, boundaryWarning: String(lastError?.message || 'Overpass unavailable') };
+    return { ...stale, stale: true, boundaryWarning: String(lastError?.message || 'Boundary providers unavailable') };
   }
 
   throw new Error(`Failed to resolve Revda boundary: ${lastError?.message || 'unknown error'}`);
