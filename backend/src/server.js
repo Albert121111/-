@@ -58,7 +58,8 @@ app.get('/api/config', (_, res) => {
     boundaryError: boundaryState.error?.message || null,
     boundary: boundaryState.data?.polygon || null,
     bounds: boundaryState.data?.bounds || null,
-    mapillaryTokenPresent: Boolean(process.env.MAPILLARY_TOKEN)
+    mapillaryTokenPresent: Boolean(process.env.MAPILLARY_TOKEN),
+    mapillaryToken: process.env.MAPILLARY_TOKEN || null
   });
 });
 

@@ -11,8 +11,12 @@ function GuessMarker({ guess, setGuess }) {
 }
 
 function mapillaryUrl(panoId, token) {
-  if (!panoId || !token) return null;
-  return `https://www.mapillary.com/embed?mapillaryKey=${panoId}&style=photo&token=${token}`;
+  if (!panoId) return null;
+  const url = new URL('https://www.mapillary.com/embed');
+  url.searchParams.set('mapillaryKey', panoId);
+  url.searchParams.set('style', 'photo');
+  if (token) url.searchParams.set('token', token);
+  return url.toString();
 }
 
 async function fetchJson(url, options) {
@@ -120,16 +124,15 @@ export default function App() {
   }
 
   async function submitGuess() {
-    if (!currentRound) return;
+    if (!currentRound || !guess) return;
     try {
-      const safeGuess = guess ?? center;
       const payload = await fetchJson(`/api/games/${gameId}/rounds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           locationId: currentRound.locationId,
-          guessLat: safeGuess[0],
-          guessLon: safeGuess[1]
+          guessLat: guess[0],
+          guessLon: guess[1]
         })
       });
 
@@ -184,7 +187,7 @@ export default function App() {
         <iframe
           title="panorama"
           className="viewer"
-          src={mapillaryUrl(currentRound.panoId, import.meta.env.VITE_MAPILLARY_TOKEN)}
+          src={mapillaryUrl(currentRound.panoId, config.mapillaryToken || import.meta.env.VITE_MAPILLARY_TOKEN)}
         />
       )}
 
@@ -196,7 +199,12 @@ export default function App() {
         <GuessMarker guess={guess} setGuess={setGuess} />
       </MapContainer>
 
-      {!feedback ? <button onClick={submitGuess}>Подтвердить ответ</button> : (
+      {!feedback ? (
+        <>
+          <button onClick={submitGuess} disabled={!guess}>Подтвердить ответ</button>
+          {!guess ? <p>Поставьте метку на карте перед подтверждением.</p> : null}
+        </>
+      ) : (
         <div className="feedback">
           <p>Расстояние: {feedback.distance.toFixed(1)} м</p>
           <p>Очки за раунд: {feedback.score}</p>
