@@ -25,19 +25,33 @@
 - Отчет по сидингу сохраняется в `metadata.seed_report`.
 
 ## Получение API ключей
-1. Зарегистрируйтесь в Mapillary и получите access token для Graph API.
-2. Заполните `.env` на основе `.env.example`:
+Что нужно найти в Mapillary:
+- **Access Token** (обязателен) — токен для Mapillary Graph API.
+- По желанию: свой `MAPILLARY_CLIENT_ID` (если будете расширять интеграцию), но для текущего проекта достаточно токена.
 
+Где это найти:
+1. Войдите в аккаунт Mapillary.
+2. Откройте раздел разработчика (Developers / API).
+3. Создайте новый токен (обычно кнопка `Generate token` / `Create token`).
+4. Скопируйте выданный token (строка вида `MLY|...`).
+
+Как подставить в проект:
+1. Создайте `.env` из шаблона:
 ```bash
 # Linux/macOS
 cp .env.example .env
 # Windows PowerShell
 copy .env.example .env
 ```
+2. Вставьте токен в оба поля:
+- `MAPILLARY_TOKEN` — использует backend (сидинг и API-запросы)
+- `VITE_MAPILLARY_TOKEN` — использует frontend (viewer)
 
-Минимум нужно задать:
-- `MAPILLARY_TOKEN`
-- `VITE_MAPILLARY_TOKEN`
+Пример:
+```env
+MAPILLARY_TOKEN=MLY|ваш_токен
+VITE_MAPILLARY_TOKEN=MLY|ваш_токен
+```
 
 ## Запуск одной командой (Windows/Linux/macOS)
 ```bash
