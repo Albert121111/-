@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "workspaces": ["backend", "frontend"],
   "scripts": {
-    "dev": "bash scripts/up.sh",
-    "up": "bash scripts/up.sh",
+    "dev": "node scripts/up.mjs",
+    "up": "node scripts/up.mjs",
     "build": "npm run build --workspace backend && npm run build --workspace frontend",
     "start": "npm run start --workspace backend",
     "test": "npm run test --workspace backend"

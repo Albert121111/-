@@ -29,19 +29,22 @@
 2. Заполните `.env` на основе `.env.example`:
 
 ```bash
+# Linux/macOS
 cp .env.example .env
+# Windows PowerShell
+copy .env.example .env
 ```
 
 Минимум нужно задать:
 - `MAPILLARY_TOKEN`
 - `VITE_MAPILLARY_TOKEN`
 
-## Запуск одной командой
+## Запуск одной командой (Windows/Linux/macOS)
 ```bash
 npm run up
 ```
 
-Что делает команда:
+Команда кроссплатформенная (без `bash` и WSL). Что делает:
 1. Ставит зависимости (если их нет).
 2. Создает `.env` из `.env.example` (если отсутствует).
 3. Выполняет миграцию SQLite.
@@ -58,7 +61,7 @@ npm run seed --workspace backend
 ```
 
 ## Команды
-- `npm run up` — запуск проекта одной командой (install + env + migrate + frontend/backend)
+- `npm run up` — запуск проекта одной командой (install + env + migrate + frontend/backend), кроссплатформенно
 - `npm run dev` — алиас к `npm run up`
 - `npm run build` — build frontend + backend
 - `npm run start` — запуск backend
